@@ -518,6 +518,77 @@
           </html:details>
         </html:div>
 
+        <!-- Fork: Quick Explain (reader selection popup) prompts -->
+        <html:div
+          id="__addonRef__-quick-explain-prefs"
+          style="display: flex; flex-direction: column; gap: 6px"
+        >
+          <html:span style="font-weight: 600; font-size: 12px"
+            >Quick Explain (popup khi bôi đen)</html:span
+          >
+          <html:label style="font-size: 12px">System prompt</html:label>
+          <html:textarea
+            id="__addonRef__-qe-system"
+            rows="3"
+            style="
+              width: 100%;
+              padding: 6px 10px;
+              font-size: 12px;
+              border-radius: 6px;
+              box-sizing: border-box;
+              resize: vertical;
+            "
+          ></html:textarea>
+          <html:label style="font-size: 12px"
+            >Prompt cho nút Explain</html:label
+          >
+          <html:textarea
+            id="__addonRef__-qe-explain"
+            rows="4"
+            style="
+              width: 100%;
+              padding: 6px 10px;
+              font-size: 12px;
+              border-radius: 6px;
+              box-sizing: border-box;
+              resize: vertical;
+            "
+          ></html:textarea>
+          <html:label style="font-size: 12px"
+            >Preset khác — mỗi preset bắt đầu bằng một dòng "## Tên"</html:label
+          >
+          <html:textarea
+            id="__addonRef__-qe-presets"
+            rows="8"
+            style="
+              width: 100%;
+              padding: 6px 10px;
+              font-size: 12px;
+              font-family: monospace;
+              border-radius: 6px;
+              box-sizing: border-box;
+              resize: vertical;
+            "
+          ></html:textarea>
+          <html:label
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 12px;
+            "
+          >
+            <html:input type="checkbox" id="__addonRef__-qe-show-presets" />
+            Hiện menu preset (▾) trong popup
+          </html:label>
+          <html:button
+            id="__addonRef__-qe-reset"
+            type="button"
+            style="align-self: flex-start; font-size: 12px"
+            >Khôi phục mặc định</html:button
+          >
+        </html:div>
+
         <html:div style="display: flex; flex-direction: column; gap: 4px">
           <html:label
             style="

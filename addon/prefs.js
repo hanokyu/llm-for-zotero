@@ -92,3 +92,6 @@ pref("mineruExcludePatterns", "");
 pref("libraryTextIndexEnabled", true);
 pref("libraryTextIndexVectors", false);
 pref("libraryTextIndexBudgetMB", 500);
+pref("quickExplainInPopup", true);
+pref("minimalUi", true);
+pref("quickExplainShowPresets", false);

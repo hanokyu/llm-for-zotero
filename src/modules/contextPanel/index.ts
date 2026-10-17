@@ -112,6 +112,12 @@ import {
   closeReaderSelectionPromptOverlay,
   openReaderSelectionPromptForChip,
 } from "./selectionPrompt/readerSelectionPromptOverlay";
+import {
+  closeAllQuickExplainOverlays,
+  closeQuickExplainOverlay,
+  openQuickExplainForSelection,
+} from "../quickExplain";
+import { revealReaderChatPane } from "../quickExplain/revealChatPane";
 import { t } from "../../utils/i18n";
 import {
   resolveInitialPanelItemState,
@@ -155,15 +161,39 @@ import {
 
 export function registerLLMStyles(win: _ZoteroTypes.MainWindow) {
   const doc = win.document;
+  // Fork: minimal sidebar overrides. Checked on its own, so a window that
+  // kept the main sheet from an earlier install still gets them.
+  const minimalId = `${config.addonRef}-minimal-styles`;
+  // The query defeats the chrome cache, which can keep a reinstalled
+  // add-on's old sheet until Zotero restarts.
+  const minimalHref = `chrome://${config.addonRef}/content/minimal.css?v=${Date.now()}`;
+  const existingMinimal = doc.getElementById(
+    minimalId,
+  ) as HTMLLinkElement | null;
+  if (existingMinimal) {
+    existingMinimal.href = minimalHref;
+  } else if (
+    Zotero.Prefs.get(`${config.prefsPrefix}.minimalUi`, true) !== false
+  ) {
+    const minimalLink = doc.createElement("link") as HTMLLinkElement;
+    minimalLink.id = minimalId;
+    minimalLink.rel = "stylesheet";
+    minimalLink.type = "text/css";
+    minimalLink.href = minimalHref;
+    doc.documentElement?.appendChild(minimalLink);
+  }
   if (doc.getElementById(`${config.addonRef}-styles`)) return;
 
-  // Main styles
+  // Main styles, inserted before the minimal sheet so the overrides win.
   const link = doc.createElement("link") as HTMLLinkElement;
   link.id = `${config.addonRef}-styles`;
   link.rel = "stylesheet";
   link.type = "text/css";
   link.href = `chrome://${config.addonRef}/content/zoteroPane.css`;
-  doc.documentElement?.appendChild(link);
+  doc.documentElement?.insertBefore(
+    link,
+    doc.getElementById(minimalId) ?? null,
+  );
 
   // KaTeX styles for math rendering
   const katexLink = doc.createElement("link") as HTMLLinkElement;
@@ -805,6 +835,7 @@ function getReaderSelectionTrackingHandler(): ReaderTextSelectionPopupHandler {
   readerSelectionTrackingHandler = (event) => {
     // A new selection popup replaces any prompt box left from the last one.
     closeReaderSelectionPromptOverlay(event.doc);
+    closeQuickExplainOverlay(event.doc);
     const selectedText = (() => {
       const fromAnnotation = normalizeSelectedText(
         event.params?.annotation?.text || "",
@@ -988,6 +1019,24 @@ function getReaderSelectionTrackingHandler(): ReaderTextSelectionPopupHandler {
             return EMPTY_READER_POPUP_ADD_TEXT_RESULT;
           }
         };
+      // Fork: opens the chat pane first, so Add Text works with it closed.
+      const addTextToRevealedPanel =
+        async (): Promise<ReaderPopupAddTextActionResult> => {
+          let mainDoc: Document | null = null;
+          try {
+            mainDoc = Zotero.getMainWindow()?.document || null;
+          } catch {
+            mainDoc = null;
+          }
+          revealReaderChatPane(mainDoc);
+          // The panel mounts asynchronously once its pane opens.
+          let added = await addTextToPanel();
+          for (let i = 0; i < 15 && !added.result; i++) {
+            await Zotero.Promise.delay(200);
+            added = await addTextToPanel();
+          }
+          return added;
+        };
       const stripPopupRowChrome = (
         row: HTMLElement | null,
         hideRow: boolean = false,
@@ -1016,6 +1065,104 @@ function getReaderSelectionTrackingHandler(): ReaderTextSelectionPopupHandler {
         if (isSeparator(prev)) prev.style.display = "none";
         if (isSeparator(next)) next.style.display = "none";
       };
+      // Fork: KOReader-style Explain button, with Add Text beside it in
+      // one row.
+      const quickExplainPref = Zotero.Prefs.get(
+        `${config.prefsPrefix}.quickExplainInPopup`,
+        true,
+      );
+      const showQuickExplain =
+        Boolean(selectedText) &&
+        quickExplainPref !== false &&
+        `${quickExplainPref ?? ""}`.toLowerCase() !== "false";
+      let quickRow: HTMLElement | null = null;
+      if (showQuickExplain) {
+        try {
+          const explainBtn = event.doc.createElementNS(
+            "http://www.w3.org/1999/xhtml",
+            "button",
+          ) as HTMLButtonElement;
+          explainBtn.type = "button";
+          explainBtn.textContent = "Explain";
+          explainBtn.title = "Giải thích đoạn đã chọn";
+          explainBtn.style.cssText = [
+            "flex:1 1 auto",
+            "margin:0",
+            "padding:4px 4px",
+            "white-space:nowrap",
+            "box-sizing:border-box",
+            "border:none",
+            "border-radius:4px",
+            "background:transparent",
+            "color:inherit",
+            "font:inherit",
+            "text-align:center",
+            "cursor:pointer",
+          ].join(";");
+          let explainHandled = false;
+          const openCard = (anchorEl: HTMLElement) => {
+            const r = anchorEl.getBoundingClientRect();
+            const text =
+              normalizeSelectedText(selectedText) ||
+              resolveSelectedTextForPopupAction();
+            if (!text) return;
+            openQuickExplainForSelection({
+              selection: event.params?.annotation as never,
+              doc: event.doc,
+              anchor: {
+                left: r.left,
+                top: r.top,
+                right: r.right,
+                bottom: r.bottom,
+              },
+              reader: event.reader,
+              item,
+              selectedText: text,
+              openInSidebar: (question) => {
+                void (async () => {
+                  const added = await addTextToRevealedPanel();
+                  const { result, targetBody, conversationKey, paperContext } =
+                    added;
+                  if (!question || !result || !targetBody) return;
+                  if (typeof conversationKey !== "number") return;
+                  attachReaderSelectionQuestion({
+                    body: targetBody,
+                    conversationKey,
+                    selectedText: result.selectedText,
+                    paperContext,
+                    contextItemId: result.location?.contextItemId,
+                    pageIndex: result.location?.pageIndex,
+                    question,
+                  });
+                })();
+              },
+            });
+          };
+          const handleExplain = (e: Event) => {
+            if ((e as MouseEvent).button > 0 || explainHandled) return;
+            explainHandled = true;
+            e.preventDefault();
+            e.stopPropagation();
+            openCard(explainBtn);
+          };
+          // Reader popup items may be removed before "click" fires.
+          explainBtn.addEventListener("pointerdown", handleExplain);
+          explainBtn.addEventListener("mousedown", handleExplain);
+          explainBtn.addEventListener("click", handleExplain);
+          quickRow = event.doc.createElementNS(
+            "http://www.w3.org/1999/xhtml",
+            "div",
+          ) as HTMLElement;
+          quickRow.style.cssText =
+            "display:flex;align-items:center;gap:0;width:100%";
+          quickRow.append(explainBtn);
+          event.append(quickRow);
+          popupSentinelEl = explainBtn;
+          stripPopupRowChrome(quickRow.parentElement as HTMLElement | null);
+        } catch (err) {
+          appLogger.warn("LLM: failed to append Explain popup button", err);
+        }
+      }
       if (showAddTextInPopup) {
         try {
           const addTextBtn = event.doc.createElementNS(
@@ -1061,7 +1208,7 @@ function getReaderSelectionTrackingHandler(): ReaderTextSelectionPopupHandler {
               right: anchorRect.right,
               bottom: anchorRect.bottom,
             };
-            void addTextToPanel().then(
+            void addTextToRevealedPanel().then(
               ({ result, targetBody, conversationKey, paperContext }) => {
                 if (
                   !result ||
@@ -1133,9 +1280,24 @@ function getReaderSelectionTrackingHandler(): ReaderTextSelectionPopupHandler {
           });
           addTextBtn.addEventListener("click", handleAddTextAction);
           addTextBtn.addEventListener("command", handleAddTextAction);
-          event.append(addTextBtn);
-          popupSentinelEl = addTextBtn;
-          stripPopupRowChrome(addTextBtn.parentElement as HTMLElement | null);
+          if (quickRow) {
+            // Same flat look as Explain, sharing its row.
+            addTextBtn.textContent = "Add text";
+            addTextBtn.style.flex = "1 1 auto";
+            addTextBtn.style.whiteSpace = "nowrap";
+            // Same font as Explain (the base style sets a smaller one).
+            addTextBtn.style.font = "inherit";
+            addTextBtn.style.width = "auto";
+            addTextBtn.style.border = "none";
+            addTextBtn.style.borderRadius = "4px";
+            addTextBtn.style.background = "transparent";
+            addTextBtn.style.padding = "4px 4px";
+            quickRow.append(addTextBtn);
+          } else {
+            event.append(addTextBtn);
+            popupSentinelEl = addTextBtn;
+            stripPopupRowChrome(addTextBtn.parentElement as HTMLElement | null);
+          }
         } catch (err) {
           appLogger.warn("LLM: failed to append Add Text popup button", err);
         }
@@ -1243,6 +1405,7 @@ export function unregisterReaderSelectionTracking() {
   readerSelectionTrackingHandler = null;
   // Overlays live in reader documents that outlive the plugin.
   closeAllReaderSelectionPromptOverlays();
+  closeAllQuickExplainOverlays();
 }
 
 type MainWindowWithNoteEditingTracker = _ZoteroTypes.MainWindow & {

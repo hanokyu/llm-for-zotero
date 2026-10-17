@@ -422,10 +422,25 @@ function buildUI(body: Element, item?: Zotero.Item | null) {
   }
   container.appendChild(chatShell);
 
+  // Fork: in the minimal UI the shortcuts row opens from this toggle
+  // (hidden unless minimal.css shows it).
+  const presetsToggle = createElement(doc, "button", "llm-min-presets-toggle", {
+    type: "button",
+    textContent: "Presets ▾",
+  });
+  presetsToggle.style.display = "none";
+  presetsToggle.addEventListener("click", () =>
+    container.classList.toggle("llm-min-presets-open"),
+  );
+  container.appendChild(presetsToggle);
+
   // Shortcuts row
   const shortcutsRow = createElement(doc, "div", "llm-shortcuts", {
     id: "llm-shortcuts",
   });
+  shortcutsRow.addEventListener("click", () =>
+    container.classList.remove("llm-min-presets-open"),
+  );
   container.appendChild(shortcutsRow);
 
   // Shortcut context menu

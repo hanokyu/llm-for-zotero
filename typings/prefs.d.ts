@@ -96,6 +96,9 @@ declare namespace _ZoteroTypes {
       "libraryTextIndexEnabled": boolean;
       "libraryTextIndexVectors": boolean;
       "libraryTextIndexBudgetMB": number;
+      "quickExplainInPopup": boolean;
+      "minimalUi": boolean;
+      "quickExplainShowPresets": boolean;
     };
   }
 }

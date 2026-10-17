@@ -1,4 +1,5 @@
 import { bindMineruLocalPreferences } from "./mineruLocalPreferences";
+import { initQuickExplainPrefs } from "./quickExplain/presets";
 import { appLogger } from "../core/logging";
 import { createProviderRequestScope } from "../utils/providerTransport";
 import {
@@ -3152,6 +3153,8 @@ export async function registerPrefsScripts(_window: Window | undefined | null) {
   rerender();
 
   // ── Global settings ────────────────────────────────────────────
+
+  initQuickExplainPrefs(doc);
 
   if (systemPromptInput) {
     systemPromptInput.value = getPref("systemPrompt") || "";

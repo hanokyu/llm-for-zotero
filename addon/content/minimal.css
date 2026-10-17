@@ -1,0 +1,188 @@
+/*
+ * Fork: minimal sidebar. Loaded after zoteroPane.css only while the
+ * `minimalUi` pref is on (default). Hides features this fork does not use
+ * and pulls colours back to Zotero's native tokens. Keep it a pure
+ * override sheet so upstream merges never touch it.
+ */
+
+/* ── Hidden features ─────────────────────────────────────────────── */
+.llm-panel #llm-runtime-mode-toggle, /* Chat ↔ Agent mode */
+.llm-panel #llm-permission-control, /* agent permissions */
+.llm-panel #llm-provider-quota,
+.llm-panel #llm-context-gauge,
+.llm-panel #llm-token-usage,
+.llm-panel #llm-task-progress-toggle,
+.llm-panel #llm-popout, /* standalone window */
+.llm-panel #llm-upload-file,
+.llm-panel #llm-select-text, /* the reader popup's Explain covers it */
+.llm-panel #llm-chat-mode-tabs, /* Paper | Library chat */
+.llm-panel #llm-header-toggle-row,
+.llm-panel #llm-header-runtime-controls, /* mode chip, Codex/Claude toggles */
+.llm-panel #llm-settings, /* reachable from Zotero Settings */
+.llm-panel #llm-export,
+.llm-panel #llm-reasoning-dropdown,
+.llm-panel #llm-top-toast {
+  display: none !important;
+}
+
+/* ── Presets behind one toggle ───────────────────────────────────── */
+.llm-panel .llm-min-presets-toggle {
+  display: block !important;
+  align-self: flex-start;
+  margin: 0 6px;
+  padding: 0 4px;
+  opacity: 0.7;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--fill-secondary);
+  font: inherit;
+  font-size: var(--llm-fs-10, 10px);
+  line-height: 1.6;
+  cursor: pointer;
+}
+.llm-panel .llm-min-presets-toggle:hover {
+  opacity: 1;
+  background: var(--fill-quinary);
+}
+.llm-panel:not(.llm-min-presets-open) #llm-shortcuts {
+  display: none !important;
+}
+
+/* ── Native look ─────────────────────────────────────────────────── */
+.llm-panel {
+  --llm-context-icon-text-color: var(--fill-secondary);
+  --llm-context-icon-image-color: var(--fill-secondary);
+  --llm-context-icon-collection-color: var(--fill-secondary);
+  --llm-context-icon-tag-color: var(--fill-secondary);
+  --llm-context-icon-note-color: var(--fill-secondary);
+  --llm-context-icon-file-color: var(--fill-secondary);
+  --llm-context-icon-model-color: var(--fill-secondary);
+  --llm-mineru-color: var(--fill-secondary);
+  --llm-mineru-bg: transparent;
+  --llm-pdf-color: var(--fill-secondary);
+  --llm-pdf-bg: transparent;
+  --llm-action-surface-radius: 5px;
+  font-family: inherit;
+}
+
+/* No motion: transitions and decorative animations off; spinners stay. */
+.llm-panel *,
+.llm-panel *::before,
+.llm-panel *::after {
+  transition: none !important;
+}
+.llm-panel *:not([class*="spin"]):not([class*="loading"]) {
+  animation: none !important;
+}
+
+/* ── Compact reading space ───────────────────────────────────────── */
+.llm-panel .llm-messages {
+  /* Extra right inset keeps text clear of the overlay scrollbar. */
+  padding: 6px 14px 6px 8px !important;
+  gap: 8px !important;
+}
+.llm-panel .llm-input-section {
+  --llm-input-section-padding: 6px;
+  --llm-composer-gap: 4px;
+  border-radius: 6px;
+}
+/* Status line: only warnings and errors, in small type. */
+.llm-panel .llm-status:not(.llm-status-error):not(.llm-status-warning) {
+  display: none !important;
+}
+.llm-panel .llm-status-bar {
+  padding: 0 4px;
+  min-height: 0;
+}
+/* Nothing to report: drop the row and its flex gap below the composer. */
+.llm-panel .llm-status-bar:not(:has(.llm-status-error, .llm-status-warning)) {
+  display: none !important;
+}
+.llm-panel {
+  gap: 6px;
+}
+
+/* Context chips above the composer in small type. */
+.llm-panel #llm-context-previews {
+  font-size: var(--llm-fs-11, 11px);
+}
+.llm-panel #llm-context-previews *:not(svg):not(svg *) {
+  font-size: inherit !important;
+}
+.llm-panel .llm-status {
+  font-size: var(--llm-fs-10, 10px) !important;
+}
+/* No drag grip on the composer; it grows with its content. */
+.llm-panel #llm-input {
+  resize: none !important;
+}
+
+/* ── Paper chip: full text ↔ excerpts switch ─────────────────────── */
+.llm-panel .llm-min-send-mode {
+  display: inline-block !important;
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--fill-quinary);
+  border-radius: 4px;
+  background: none;
+  color: var(--fill-secondary);
+  font: inherit;
+  font-size: var(--llm-fs-11, 11px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.llm-panel .llm-paper-context-chip-full .llm-min-send-mode {
+  color: var(--color-accent);
+  border-color: currentColor;
+}
+
+/* ── Tighter messages ────────────────────────────────────────────── */
+/* User bubbles only: assistant bubbles are width:100% with no padding,
+   and padding them pushed the answer past the right edge. */
+.llm-panel .llm-bubble.user {
+  padding: 6px 9px;
+  box-sizing: border-box;
+}
+.llm-panel .llm-bubble.assistant {
+  box-sizing: border-box;
+  padding-right: 4px;
+}
+.llm-panel .llm-bubble.user {
+  max-width: 100%;
+}
+.llm-panel .llm-message-wrapper {
+  gap: 2px;
+}
+.llm-panel .llm-header {
+  gap: 0;
+}
+
+/* ── OpenRouter picker inside the model menu ─────────────────────── */
+.llm-panel .llm-min-or-search {
+  margin: 4px 6px;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: var(--llm-fs-12, 12px);
+  border: 1px solid var(--fill-quinary);
+  border-radius: 4px;
+}
+.llm-panel .llm-min-or-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.llm-panel .llm-min-or-list .llm-model-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.llm-panel .llm-min-or-note,
+.llm-panel .llm-min-or-empty {
+  color: var(--fill-secondary);
+  font-size: var(--llm-fs-10, 10px);
+}
+.llm-panel .llm-min-or-empty {
+  padding: 4px 8px;
+}

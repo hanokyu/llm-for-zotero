@@ -1,4 +1,5 @@
 import { appLogger } from "../../core/logging";
+import { appendOpenRouterBrowseItem } from "../quickExplain/openRouterPicker";
 import { copyNoteEditingSelectedTextContext } from "./noteEditing/selectionController";
 import {
   bindTaskProgressToggle,
@@ -4014,6 +4015,25 @@ export function setupHandlers(
     );
     chipLabel.append(chipIcon, chipText);
     chipHeader.append(chipLabel);
+    // Fork: visible full text ↔ retrieval switch; replays the chip's
+    // right-click toggle so the send-mode rules stay in one place.
+    const sendModeBtn = createElement(ownerDoc, "button", "llm-min-send-mode", {
+      type: "button",
+      textContent: fullText ? "Full text" : "Trích đoạn",
+      title: fullText
+        ? "Đang gửi toàn bộ paper — bấm để chỉ gửi đoạn liên quan"
+        : "Chỉ gửi đoạn liên quan — bấm để gửi toàn bộ paper",
+    }) as HTMLButtonElement;
+    sendModeBtn.style.display = "none"; // shown by minimal.css
+    sendModeBtn.addEventListener("click", (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const MouseEventCtor = ownerDoc.defaultView?.MouseEvent ?? MouseEvent;
+      chip.dispatchEvent(
+        new MouseEventCtor("contextmenu", { bubbles: true, cancelable: true }),
+      );
+    });
+    chipHeader.append(sendModeBtn);
 
     if (removable) {
       const removeBtn = createElement(
@@ -5635,6 +5655,15 @@ export function setupHandlers(
         option.addEventListener("click", applyModelSelection);
         modelMenu.appendChild(option);
       }
+    }
+    // Fork: browse OpenRouter's catalogue from the model menu.
+    if (!isClaudeConversationSystem() && !isCodexConversationSystem()) {
+      appendOpenRouterBrowseItem(modelMenu, (entryId) => {
+        setFloatingMenuOpen(modelMenu, MODEL_MENU_OPEN_CLASS, false);
+        panelChoices.setSelectedModelEntry(entryId);
+        updateModelButton();
+        updateReasoningButton();
+      });
     }
   };
 
